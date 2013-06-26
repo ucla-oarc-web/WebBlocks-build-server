@@ -1,0 +1,33 @@
+<form action="<%=@action%>" method="<%=@method%>" class="form">
+  <div class="control">
+    <label for="rakefile-config">
+      Compiler Configuration
+      <br><small class="text-primary">Rakefile-config.rb</small>
+    </label>
+    <textarea name="rakefile-config" id="rakefile-config" class="full" style="height:8em;"></textarea>
+  </div>
+  <div class="control">
+    <label for="src-sass-variables">
+      SASS Variables Configuration
+      <br><small class="text-secondary">src/sass/_variables.scss</small>
+    </label>
+    <textarea name="src-sass-variables" id="src-sass-variables" class="full" style="height:8em;"></textarea>
+  </div>
+  <div class="control">
+    <label for="src-sass-blocks">
+      Core Stylesheet Definitions
+      <br><small class="text-tertiary">src/sass/blocks.scss</small>
+    </label>
+    <textarea name="src-sass-blocks" id="src-sass-blocks" class="full" style="height:8em;"></textarea>
+  </div>
+  <div class="control">
+    <label for="src-sass-blocks-ie">
+      IE Stylesheet Definitions
+      <br><small class="text-tertiary">src/sass/blocks-ie.scss</small>
+    </label>
+    <textarea name="src-sass-blocks-ie" id="src-sass-blocks-ie" class="full" style="height:8em;"></textarea>
+  </div>
+  <div class="control">
+    <input type="submit" class="button primary" value="Generate Build">
+  </div>
+</form>
