@@ -13,7 +13,14 @@ module WebBlocks
             def run! data
 
               FileUtils.mkdir_p @job.workspace_directory
-              File.open(@job.workspace_metadata, 'w') { |f| f.write(::JSON.dump @job.params) }
+              File.open(@job.workspace_metadata, 'w') do |f| 
+                f.write ::JSON.dump({
+                  'status' => 'running',
+                  'server' => @job.app.public_config,
+                  'build' => @job.params
+                })
+              end
+              @job.logger.info "Wrote metadata file -- #{@job.workspace_metadata}"
 
             end
 

@@ -98,6 +98,8 @@ module WebBlocks
         
       end
       
+      attr_accessor :public_config
+      
       before do
         
         @public_config = settings.public_config

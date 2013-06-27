@@ -1,5 +1,8 @@
+require 'rubygems'
 require 'extensions/kernel' if defined?(require_relative).nil?
 require 'fileutils'
+require 'zip/zip'
+require 'json'
 require_relative '../Base'
 require_relative '../../../Support/with_clean_bundler_env'
 
@@ -32,14 +35,16 @@ module WebBlocks
               end
               @job.logger.info "Appended #{rakefile_config_file_name}"
               
-              @job.logger.info "Dispatching build thread"
+              @job.logger.info "Forking build process"
               
               fork do
+                
+                logger = @job.logger.clone
+                logger.progname << " -- Build Process"
+                logger.debug "Forked build process"
+                
                 Dir.chdir(@job.webblocks_directory) do 
                   ::WebBlocks::BuildServer::Support.with_clean_bundler_env do
-                    
-                    logger = @job.logger.clone
-                    logger.progname << " -- Build Process"
                     
                     # this should already be initialized so just need to ensure env
                     logger.info "Initialize bundler"
@@ -54,19 +59,38 @@ module WebBlocks
                     logger.info "Run build [ #{command} ]"
                     status, stdout, stderr = systemu command
                     if stderr.length > 0
-                      logger.fatal "Failed to run build"
+                      logger.fatal "Build failed"
                       logger.fatal stderr
                       # write out some metadata about why the build failed
                       exit!
                     end
-                    
                     logger.info "Build complete"
                     
                   end
                 end
+                
+                logger.info "Generating zip of build"
+                
+                zip_name = @job.build_product
+                Zip::ZipFile.open(zip_name, Zip::ZipFile::CREATE) do |zipfile|
+                    Dir[File.join(build_dir, '**', '**')].each do |file|
+                      zipfile.add(file.sub(build_dir, '').gsub(/^\//,''), file)
+                    end
+                end
+                logger.info "Generated zip of build -- #{zip_name}"
+                
+                [@job.workspace_metadata, @job.build_metadata].each do |metadata_file|
+                  File.open metadata_file, 'w' do |f|
+                    f.write ::JSON.dump({
+                      'status' => 'success',
+                      'server' => @job.app.public_config,
+                      'build' => @job.params
+                    })
+                    logger.info "Wrote metadata file -- #{metadata_file}"
+                  end
+                end
+
               end
-              
-              @job.logger.debug "Forked process to run WebBlocks build"
               
             end
 
