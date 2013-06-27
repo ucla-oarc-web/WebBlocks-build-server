@@ -14,6 +14,7 @@ module WebBlocks
             
             file_name = ::File.join(directory_name, 'blocks-ie.scss')
             File.open file_name, 'w' do |f| 
+              f.write "@import \"WebBlocks-ie\";\n"
               f.write data
             end
             @job.logger.info "Saved #{file_name}"

@@ -37,14 +37,22 @@ module WebBlocks
       def webblocks_src_core_directory
         ::File.join( webblocks_directory, "src/core" )
       end
+      
+      def webblocks_src_extension_directory
+        ::File.join( webblocks_directory, "src/extension" )
+      end
 
       # Workspace for WebBlocks build
       def workspace_directory
         ::File.join( @config['workspace_dir'], "#{@config['reference']}", @id )
       end
+      
+      def workspace_build_tmp_directory
+        ::File.join( workspace_directory, '.build-tmp' )
+      end
 
       def workspace_metadata
-        ::File.join( workspace_directory, 'metadata.json')
+        ::File.join( workspace_directory, 'metadata.json' )
       end
 
       # Build directory for completed WebBlocks build for job
