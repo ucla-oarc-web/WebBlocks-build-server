@@ -13,11 +13,12 @@ module WebBlocks
               
               json_data = @job.app.params.include?('rakefile-config') ? @job.app.params['rakefile-config'] : '{}'
               
+              data = nil
               begin
                 data = JSON.load(json_data)
               rescue
-                data = {}
               end
+              data = {} if data.nil?
             
               supported_vars = [
                 ['build','debug'],

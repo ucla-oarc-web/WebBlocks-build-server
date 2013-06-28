@@ -1,7 +1,7 @@
 require 'extensions/kernel' if defined?(require_relative).nil?
 require 'json'
 require_relative '../Support/Model'
-require_relative '../Support/Job/Strategy'
+require_relative '../Support/Job/StrategyFactory'
 
 module WebBlocks
   module BuildServer

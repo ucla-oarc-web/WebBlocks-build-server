@@ -14,11 +14,12 @@ module WebBlocks
 
               json_data = @job.app.params.include?('src-sass-variables') ? @job.app.params['src-sass-variables'] : '{}'
               
+              data = nil
               begin
                 data = JSON.parse(json_data, { :max_nesting => 1 })
               rescue
-                data = {}
               end
+              data = {} if data.nil?
 
               lines = []
               data.each do |key,value|

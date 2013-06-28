@@ -68,12 +68,12 @@ module WebBlocks
                     f.write ::JSON.dump({
                       'status' => ::WebBlocks::BuildServer::Model::Job::MetadataStatus::COMPLETE,
                       'id' => @job.id,
-                      'build' => @job.app.params,
-                      'server' => @job.app.public_config,
                       'url' => {
                         'download' => @job.app.url("/builds/#{@job.id}/zip"),
                         'browse' => @job.app.url("/builds/#{@job.id}")
-                      }
+                      },
+                      'build' => @job.app.params,
+                      'server' => @job.app.public_config
                     })
                     @logger.info "Wrote metadata file -- #{metadata_file}"
                   end
