@@ -107,6 +107,14 @@ module WebBlocks
           ]
         end
         
+        def to_hash
+          {
+            'metadata' => metadata,
+            'path' => @path.to_hash,
+            'app' => @app.config
+          }
+        end
+        
       end
     end
   end

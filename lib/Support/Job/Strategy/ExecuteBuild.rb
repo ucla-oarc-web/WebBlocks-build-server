@@ -1,7 +1,7 @@
 require 'extensions/kernel' if defined?(require_relative).nil?
 require 'fileutils'
 require_relative 'Strategy'
-require_relative '../Delegate/ExecuteBuild'
+require_relative '../DelegateFactory'
 
 module WebBlocks
   module BuildServer
@@ -34,7 +34,7 @@ module WebBlocks
               @logger.info "Appended #{rakefile_config_file_name}"
               
               @logger.info "Dispatching delegate"
-              ::WebBlocks::BuildServer::Support::Job::Delegate::ExecuteBuild.new(@job).run!
+              ::WebBlocks::BuildServer::Support::Job::DelegateFactory.new(@job).build('ExecuteBuild').run!
               @logger.info "Delegate dispatched"
               
             end

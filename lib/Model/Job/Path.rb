@@ -13,6 +13,14 @@ module WebBlocks
             @config = job.app.config
           end
           
+          def to_hash
+            hash = {}
+            (self.class.instance_methods - Object.methods - ['to_hash','initialize']).each do |method|
+              hash[method] = send(method)
+            end
+            hash
+          end
+          
           def webblocks_directory
             ::File.join( @config['workspace_dir'], "#{@config['reference']}", '_WebBlocks' )
           end

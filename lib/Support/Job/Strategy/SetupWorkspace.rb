@@ -27,6 +27,8 @@ module WebBlocks
                 })
               end
               
+              @job.refresh!
+              
               @logger.info "Wrote metadata file -- #{@job.path.workspace_metadata}"
               
             end
