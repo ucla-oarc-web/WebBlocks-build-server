@@ -3,7 +3,6 @@ GEM
   specs:
     backports (3.3.2)
     daemons (1.1.9)
-    docile (1.0.2)
     eventmachine (1.0.3)
     extensions (0.6.0)
     git (1.2.5)
@@ -38,7 +37,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  docile
   extensions
   git
   json (~> 1.7.7)

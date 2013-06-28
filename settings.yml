@@ -1,0 +1,6 @@
+public_config:
+  repository: https://github.com/ucla/WebBlocks.git
+  reference: v1.0.08
+private_config:
+  build_dir: build
+  workspace_dir: workspace

@@ -3,6 +3,7 @@ require 'extensions/kernel' if defined?(require_relative).nil?
 
 require 'sinatra'
 require 'sinatra/json'
+require 'sinatra/config_file'
 require 'json'
 require 'multi_json'
 require 'fileutils'
@@ -15,48 +16,61 @@ module WebBlocks
   module BuildServer
     class App < Sinatra::Base
       
+      register Sinatra::ConfigFile
       helpers Sinatra::JSON
+      
+      config_file ::File.join( ::File.dirname(::File.dirname(__FILE__)), "settings.yml" )
       
       configure :production, :development do
         
         enable :logging
         
-        @public_config = {
-          'repository' => 'https://github.com/ucla/WebBlocks.git',
-          'reference' => 'v1.0.08'  # MUT be commit ID or tag, NOT branch name
-        }
+        public_config = settings.public_config
+        private_config = settings.private_config
+        base_dir = ::File.dirname(::File.dirname(__FILE__))
         
-        @private_config = {
-          'workspace_dir' => ::File.join( ::File.dirname(::File.dirname(__FILE__)), "workspace" ),
-          'build_dir' => ::File.join( ::File.dirname(::File.dirname(__FILE__)), "build" ),
-          'threads' => 4
-        }
+        if public_config.include? 'workspace_dir'
+          public_config['workspace_dir'] = ::File.join( base_dir, public_config['workspace_dir'] ) 
+        end
         
-        @config = @public_config.merge(@private_config)
+        if private_config.include? 'workspace_dir'
+          private_config['workspace_dir'] = ::File.join( base_dir, private_config['workspace_dir'] ) 
+        end
         
-        set :public_config, @public_config
-        set :config, @config
+        if public_config.include? 'build_dir'
+          public_config['build_dir'] = ::File.join( base_dir, public_config['build_dir'] ) 
+        end
         
-        build_dir = ::File.join( @config['build_dir'], "#{@config['reference']}" )
+        if private_config.include? 'build_dir'
+          private_config['build_dir'] = ::File.join( base_dir, private_config['build_dir'] ) 
+        end
+        
+        config = public_config.merge(private_config)
+        
+        set :public_config, public_config
+        set :private_config, private_config
+        set :config, config
+        
+        build_dir = ::File.join( config['build_dir'], "#{config['reference']}" )
         puts ">> Setting up build directory #{build_dir}"
         FileUtils.mkdir_p build_dir
               
-        webblocks_dir = ::File.join( @config['workspace_dir'], "#{@config['reference']}", '_WebBlocks' )
+        webblocks_dir = ::File.join( config['workspace_dir'], "#{config['reference']}", '_WebBlocks' )
         
         puts ">> Setting up workspace #{File.dirname webblocks_dir}"
         FileUtils.mkdir_p File.dirname webblocks_dir
         
         unless File.exists? webblocks_dir
-          puts ">> Initializing WebBlocks -- git clone #{@config['repository']} #{webblocks_dir} "
-          repo = Git.clone @config['repository'], '_WebBlocks', { :path => File.dirname(webblocks_dir) }
-          puts ">> Initializing WebBlocks -- git branch -b deploy #{@config['reference']} "
-          repo.checkout @config['reference'], { :new_branch => "deploy" }
+          puts ">> Initializing WebBlocks -- git clone #{config['repository']} #{webblocks_dir} "
+          repo = Git.clone config['repository'], '_WebBlocks', { :path => File.dirname(webblocks_dir) }
+          puts ">> Initializing WebBlocks -- git branch -b deploy #{config['reference']} "
+          repo.checkout config['reference'], { :new_branch => "deploy" }
         else
           #
           # might do something like this later if we get better cache sense...
           #
           #   repo = Git.open webblocks_dir
-          #   repo.pull repo.remotes.first, @config['reference']
+          #   repo.pull repo.remotes.first, config['reference']
           #
         end
         

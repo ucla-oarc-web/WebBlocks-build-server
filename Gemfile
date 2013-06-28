@@ -3,7 +3,6 @@ source 'https://rubygems.org'
 # General
 gem 'rake'
 gem 'rack'
-gem 'docile'
 gem 'extensions'
 gem 'sinatra'
 gem 'sinatra-contrib'
