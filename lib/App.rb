@@ -9,16 +9,11 @@ require 'fileutils'
 require 'git'
 require 'systemu'
 
-require_relative 'Build/Job'
-require_relative 'Flush/Job'
-require_relative 'Status/Job'
 require_relative 'Support/with_clean_bundler_env'
 
 module WebBlocks
   module BuildServer
     class App < Sinatra::Base
-      
-      # Application Setup
       
       helpers Sinatra::JSON
       
@@ -99,6 +94,8 @@ module WebBlocks
       end
       
       attr_accessor :public_config
+      attr_accessor :config
+      attr_accessor :logger
       
       before do
         
@@ -113,37 +110,24 @@ module WebBlocks
         erb "layouts/#{layout}".to_sym
       end
       
-      def run job
-        result = job.run!
-        job.end!
-        result
+      def raw_view text, layout = "main"
+        @body_content = text
+        erb "layouts/#{layout}".to_sym
       end
       
-      # Application Routes
-      
-      get '/config' do
-        json @public_config
-      end
-      
-      get '/jobs/create' do
-        @action = '/jobs'
-        @method = 'POST'
-        view 'jobs/create'
-      end
-      
-      post '/jobs' do
-        json run Build::Job.new self, params, @config, @logger
-      end
-      
-      get '/jobs/:id/flush' do |id|
-        json run Flush::Job.new self, id, @config, @logger
-      end
-      
-      get '/jobs/:id' do |id|
-        json run Status::Job.new self, id, @config, @logger
+      def halt_view code, text, layout = "main"
+        @body_content = "<h3>#{code} Error</h3><p>#{text}</p>"
+        erb "layouts/#{layout}".to_sym
       end
       
     end
   end
 end
+
+# Routes
+
+require_relative "App/api/config"
+require_relative "App/api/jobs"
+require_relative "App/builds"
+require_relative "App/jobs"
 
