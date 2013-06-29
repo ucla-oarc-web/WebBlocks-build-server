@@ -23,13 +23,14 @@ end
   '_configure',
   '_instance_variables',
   '_resource_pool',
+  '_scheduler',
   '_view_helpers',
   
   # Routes
-  'api/config',
-  'api/jobs',
-  'builds',
-  'jobs'
+  'Route/api/config',
+  'Route/api/jobs',
+  'Route/builds',
+  'Route/jobs'
 
 ].each do |file|
   require_relative "App/#{file}"

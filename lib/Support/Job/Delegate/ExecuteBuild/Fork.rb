@@ -44,6 +44,16 @@ module WebBlocks
                     write_error error.message
                     
                   end
+                    
+                  if @config['workspace_expiration'] == 0
+                    file_root = File.dirname File.dirname File.dirname File.dirname File.dirname File.dirname __FILE__
+                    Dir.chdir file_root do
+                      Dir.chdir "#{@config['workspace_dir']}/#{@config['reference']}" do
+                        FileUtils.rm_rf @job_id
+                        @logger.info "Removed workspace for completed job"
+                      end
+                    end
+                  end
 
                 end
                 

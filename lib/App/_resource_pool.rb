@@ -35,13 +35,11 @@ module WebBlocks
       
       def has_resources?
         
-        if !@config.include?('resource_pool')
+        if !@config.include?('child_processes_limit')
           true
-        elsif !@config['resource_pool'].include?('child_processes') or @config['resource_pool']['child_processes'].nil?
+        elsif @config['child_processes_limit'] < 0
           true
-        elsif @config['resource_pool']['child_processes'] < 0
-          true
-        elsif resource_pool_child_pids.size < @config['resource_pool']['child_processes']
+        elsif resource_pool_child_pids.size < @config['child_processes_limit']
           true
         else
           false

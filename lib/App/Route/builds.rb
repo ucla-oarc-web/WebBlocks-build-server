@@ -3,7 +3,7 @@ require 'extensions/kernel' if defined?(require_relative).nil?
 require 'json'
 require 'multi_json'
 
-require_relative "../Model/Job"
+require_relative "../../Model/Job"
 
 module WebBlocks
   module BuildServer
@@ -88,5 +88,5 @@ module WebBlocks
   end
 end
       
-require_relative "Renderer/Builds"
-require_relative "Support/Builds"
+require_relative "../Renderer/Builds"
+require_relative "../Support/Builds"

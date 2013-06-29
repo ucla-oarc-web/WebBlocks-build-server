@@ -17,6 +17,8 @@ module WebBlocks
                 
                 super job
                 
+                @config = @job.app.config
+                @job_id = @job.id
                 @build_dir = @job.path.build_directory.gsub("\"","\\\"")
                 @build_product = @job.path.build_product
                 @webblocks_dir = @job.path.webblocks_directory
@@ -53,7 +55,9 @@ module WebBlocks
                   'metadata_files' => @metadata_files,
                   'metadata' => @metadata,
                   'complete_metadata' => @complete_metadata,
-                  'failed_metadata' => @failed_metadata
+                  'failed_metadata' => @failed_metadata,
+                  'config' => @config,
+                  'job_id' => @job_id
                 }
               end
 

@@ -1,5 +1,5 @@
 require 'extensions/kernel' if defined?(require_relative).nil?
-require_relative '../builds'
+require_relative '../Route/builds'
 
 module WebBlocks
   module BuildServer

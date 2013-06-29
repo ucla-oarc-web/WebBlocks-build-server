@@ -53,25 +53,63 @@ Next, from within the build server directly, invoke Bundler:
 bundle install
 ```
 
-Finally, you may want to modify `settings.yml` to use your own fork or reference:
+Finally, you may want to modify `settings.yml` to use your own fork or reference, define resource limitations, cache expirations and directory structure:
 
 ```yaml
+# PUBLIC SERVER SETTINGS
+
 public_config:
+  
+  # Repository from which WebBlocks will be retrieved.
   repository: https://github.com/ucla/WebBlocks.git
+  
+  # Reference to tag or commit ID in Git repository. Do NOT set this value to 
+  # a branch name, or the build server may end up with stale builds in its 
+  # cache.
   reference: v1.0.08
+  
+# PRIVATE SERVER SETTINGS
+
 private_config:
-  build_dir: build
+    
+  # Number of child processes allowed in the fork mode. When the number of 
+  # build jobs currently running excede this value, additional job requests 
+  # will recieve a 503 Service Unavailable response until one or more of the 
+  # current jobs complete.
+  child_processes_limit: 3
+  
+  # Seconds between wake ups of the scheduler to handle tasks like workspace 
+  # and build expiration cleanup.
+  cleanup_frequency: 300
+  
+  # Seconds from build completion time until workspace will be expired from 
+  # server. Set this value to -1 to never expire workspaces. Generally, this
+  # value should be set to 0 to expire workspaces immediately.
+  workspace_expiration: 0
+  
+  # Seconds from build completion time until build will be expired from server. 
+  # Set this value to -1 to never expire builds, such as if the server is being 
+  # used as a third-party provider for other site's CSS, JS and image assets.
+  build_expiration: -1
+  
+  # Seconds before an incomplete workspace (such as one queued or hung) is 
+  # expired. This should be longer than it takes the build server to run a 
+  # successful build, as it will cause the submitted job to abort. Set this 
+  # value to -1 to never expire incomplete workspaces. 
+  workspace_incomplete_expiration: 7200
+  
+  # Temporary directory used during build jobs.
   workspace_dir: workspace
-  job_concurrency: default
-  resource_pool:
-    child_processes: 5
+  
+  # Directory used to store completed build runs.
+  build_dir: build
 ```
 
 In most cases, the default values in `settings.yml` should be sufficient.
 
 **WARNING** The value for `reference` should always refer to a tag name or commit ID. It should never refer to a branch. If it refers to  branch, stale builds may end up in the build cache. 
 
-**WARNING** The value for `resource_pool.child_processes` only applies when running in the `fork` concurrency mode (launched via `rackup`).
+**WARNING** The value for `child_processes_limit` only applies when running in the `fork` concurrency mode (launched via `rackup`).
 
 ### Starting the Server
 
@@ -96,9 +134,9 @@ The `rackup` launch defaults to port 9292. To change the port that the server li
 rackup config.ru -p 80
 ```
 
-Using `rackup` is the simplest method for launching the WebBlocks Build Server; however, it has a caveat that, if there are `resource_pool.child_processes` builds currently in progress, the server will reject additional the request with a 503 Service Unavailable response until one of the current builds complete. This is because it does not include a queue manager (see *Using `foreman` to Start the Server* for an alternative that does not have this constraint).
+Using `rackup` is the simplest method for launching the WebBlocks Build Server; however, it has a caveat that, if there are `child_processes_limit` builds currently in progress, the server will reject additional the request with a 503 Service Unavailable response until one of the current builds complete. This is because it does not include a queue manager (see *Using `foreman` to Start the Server* for an alternative that does not have this constraint).
 
-Before launching the server, you may want to tune `resource_pool.child_processes`. When the WebBlocks compiler is running, the associated process will use up to 100% CPU, so this value should likely exceed one less than the number of available cores. This value defaults to 3, but it can be modified in `settings.yml`.
+Before launching the server, you may want to tune `child_processes_limit`. When the WebBlocks compiler is running, the associated process will use up to 100% CPU, so this value should likely exceed one less than the number of available cores. This value defaults to 3, but it can be modified in `settings.yml`.
 
 #### Using `foreman` to Start the Server
 
@@ -116,7 +154,7 @@ The `rackup` launch defaults to port 5000. To change the port that the server li
 foreman start -p 80
 ```
 
-This launch method does *not* use `resource_pool.child_processes` to determine the number of workers; instead, this value is set in `.foreman` under the `concurrency` option. As with `resource_pool.child_processes`, it is likely that the number of workers launched with `foreman` should not exceed one less than the number of available cores. In addition to specifying the number of workers in `.foreman`, it may also be set during launch:
+This launch method does *not* use `child_processes_limit` to determine the number of workers; instead, this value is set in `.foreman` under the `concurrency` option. As with `child_processes_limit`, it is likely that the number of workers launched with `foreman` should not exceed one less than the number of available cores. In addition to specifying the number of workers in `.foreman`, it may also be set during launch:
 
 ```bash
 foreman start -p 80 -c worker=3,web=1,redis=1
@@ -218,7 +256,7 @@ While some end users will want to download a zip file and deploy the assets with
 
 Returns a JSON structure containing all variables set in the `public` section of `settings.yml`.
 
-##### Example Response: 200 OK
+##### Success Response: 200 OK
 
 ```json
 {"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}
@@ -255,7 +293,7 @@ If the status is `failed`, the response will additionally include:
  * `output` - Standard output from the build step that failed
  * `error` - Standard error from the build step that failed
 
-##### Example Request
+##### Request
 
 `rakefile-config` post data field:
 
@@ -285,13 +323,13 @@ If the status is `failed`, the response will additionally include:
 }
 ```
 
-##### Example Responses: 200 OK
+##### Success Responses: 200 OK
 
 See the *GET /api/jobs/:id - Example Response: 200 OK with `running` status* section.
 
-##### 503 Service Unavailable
+##### Error Response: 503 Service Unavailable
 
-If the server is running with in the `fork` concurrency mode and the number of current jobs is already at the limit set by `resource_pool.child_processes`:
+If the server is running with in the `fork` concurrency mode and the number of current jobs is already at the limit set by `child_processes_limit`:
 
 ```none
 The server is currently busy processing other jobs. Please try again later.
@@ -321,19 +359,19 @@ If the status is `failed`, the response will additionally include:
  * `output` - Standard output from the build step that failed
  * `error` - Standard error from the build step that failed
 
-##### Example Response: 200 OK with `running` status
+##### Success Response: 200 OK (example with `running` status)
 
 ```json
 {"status":"running","id":"c668b6b22bd09a171560e33c766ea36c","build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -base-visibility-hide;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
 ```
 
-##### Example Response: 200 OK with `complete` status
+##### Success Response: 200 OK (example with `complete` status)
 
 ```json
 {"status":"complete","id":"c668b6b22bd09a171560e33c766ea36c","url":{"download":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c/zip","browse":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c"},"build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -base-visibility-hide;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
 ```
 
-##### Example Response: 200 OK with `failed` status
+##### Success Response: 200 OK (example with `failed` status)
 
 ```json
 {"status":"failed","id":"5e5b96b11f1ab55f32adea07ef0cab13","error":{"message":"Build failed","output":"[Dispatcher] Executing task: before_init\n[Dispatcher] Executing task: init\n[Dispatcher] Executing task: after_init\n[Dispatcher] Executing task: before_preprocess\n[Dispatcher] Executing task: preprocess\n[Dispatcher] Executing task: after_preprocess\n[Dispatcher] Executing task: before_link\n[Dispatcher] Executing task: link\n[Dispatcher] Executing task: after_link\n[Dispatcher] Executing task: before_compile\n[Dispatcher] Executing task: compile\n","error":"rake aborted!\nCompass compile error: \ndirectory css/compiled/ \n   create css/compiled/blocks-ie.css \n    error blocks.scss (Line 2: Undefined mixin '-does-not-exist'.)\n\nSass::SyntaxError on line [\"2\"] of workspace/v1.0.08/5e5b96b11f1ab55f32adea07ef0cab13/src/sass/blocks.scss: Undefined mixin '-does-not-exist'.\nRun with --trace to see the full backtrace\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:58:in `failure'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:142:in `block (2 levels) in compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:134:in `chdir'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:134:in `block in compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:50:in `block in task'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:97:in `scope'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:49:in `task'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:129:in `compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:123:in `compile'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:44:in `block (3 levels) in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:42:in `each'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:42:in `block (2 levels) in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:44:in `block in system'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:97:in `scope'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:43:in `system'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:39:in `block in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:38:in `each'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:38:in `execute'\nworkspace/v1.0.08/_WebBlocks/lib/Rake/Task/build.rb:13:in `block in <top (required)>'\n/Users/ebollens/.rvm/gems/ruby-1.9.3-p392/bin/ruby_noexec_wrapper:14:in `eval'\n/Users/ebollens/.rvm/gems/ruby-1.9.3-p392/bin/ruby_noexec_wrapper:14:in `<main>'\nTasks: TOP => default => build\n(See full trace by running task with --trace)\n"},"build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -does-not-exist;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
@@ -341,13 +379,13 @@ If the status is `failed`, the response will additionally include:
 
 ### GET /api/jobs/:id/delete
 
-##### 200 OK
+##### Success Response: 200 OK
 
 ```json
 {"status":"deleted","id":"c668b6b22bd09a171560e33c766ea36c","url":{"download":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c/zip","browse":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c"},"build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -base-visibility-hide;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
 ```
 
-##### 404 Not Found
+##### Error Response: 404 Not Found
 
 If a build does not exist:
 
@@ -357,7 +395,7 @@ Cannot delete. Build #c668b6b22bd09a171560e33c766ea36c does not exist.
 
 This may be the result of a replay, and a 404 may be interpreted by a client as a successful deletion.
 
-##### 409 Conflict
+##### Error Response: 409 Conflict
 
 If a build is currently in progress:
 

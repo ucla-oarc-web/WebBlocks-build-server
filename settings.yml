@@ -1,8 +1,47 @@
+# PUBLIC SERVER SETTINGS
+
 public_config:
+  
+  # Repository from which WebBlocks will be retrieved.
   repository: https://github.com/ucla/WebBlocks.git
+  
+  # Reference to tag or commit ID in Git repository. Do NOT set this value to 
+  # a branch name, or the build server may end up with stale builds in its 
+  # cache.
   reference: v1.0.08
+  
+# PRIVATE SERVER SETTINGS
+
 private_config:
-  build_dir: build
+    
+  # Number of child processes allowed in the fork mode. When the number of 
+  # build jobs currently running excede this value, additional job requests 
+  # will recieve a 503 Service Unavailable response until one or more of the 
+  # current jobs complete.
+  child_processes_limit: 3
+  
+  # Seconds between wake ups of the scheduler to handle tasks like workspace 
+  # and build expiration cleanup.
+  cleanup_frequency: 300
+  
+  # Seconds from build completion time until workspace will be expired from 
+  # server. Set this value to -1 to never expire workspaces. Generally, this
+  # value should be set to 0 to expire workspaces immediately.
+  workspace_expiration: 0
+  
+  # Seconds from build completion time until build will be expired from server. 
+  # Set this value to -1 to never expire builds, such as if the server is being 
+  # used as a third-party provider for other site's CSS, JS and image assets.
+  build_expiration: -1
+  
+  # Seconds before an incomplete workspace (such as one queued or hung) is 
+  # expired. This should be longer than it takes the build server to run a 
+  # successful build, as it will cause the submitted job to abort. Set this 
+  # value to -1 to never expire incomplete workspaces. 
+  workspace_incomplete_expiration: 7200
+  
+  # Temporary directory used during build jobs.
   workspace_dir: workspace
-  resource_pool:
-    child_processes: 3
+  
+  # Directory used to store completed build runs.
+  build_dir: build
