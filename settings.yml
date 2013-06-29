@@ -4,4 +4,5 @@ public_config:
 private_config:
   build_dir: build
   workspace_dir: workspace
-  job_concurrency: fork
+  resource_pool:
+    child_processes: 3

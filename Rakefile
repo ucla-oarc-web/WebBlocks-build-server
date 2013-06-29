@@ -9,6 +9,7 @@ require 'rake/clean'
 require 'rubygems/package_task'
 require 'rdoc/task'
 require 'rake/testtask'
+require 'resque/tasks'
 
 spec = Gem::Specification.new do |s|
   s.name = 'use-engine'
@@ -39,4 +40,12 @@ end
 
 Rake::TestTask.new do |t|
   t.test_files = FileList['test/**/*.rb']
+end
+
+namespace :resque do
+  task :setup do
+    puts "*** Loading WebBlocks Build Server environment for Resque"
+    require 'extensions/kernel' if defined?(require_relative).nil?
+    require_relative 'lib/Support/Job/Delegate/ExecuteBuild/Resque'
+  end
 end

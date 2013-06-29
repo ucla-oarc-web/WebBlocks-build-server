@@ -43,6 +43,19 @@ module WebBlocks
                 })
                 
               end
+              
+              def to_hash
+                {
+                  'build_dir' => @build_dir,
+                  'build_product' => @build_product,
+                  'webblocks_dir' => @webblocks_dir,
+                  'rakefile_config_file_name' => @rakefile_config_file_name,
+                  'metadata_files' => @metadata_files,
+                  'metadata' => @metadata,
+                  'complete_metadata' => @complete_metadata,
+                  'failed_metadata' => @failed_metadata
+                }
+              end
 
               def write_error msg, out, err
                 

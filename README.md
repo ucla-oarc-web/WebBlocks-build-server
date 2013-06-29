@@ -16,7 +16,7 @@ The WebBlocks Build Server is written and maintained by Eric Bollens @ebollens.
 
 This server is a component of the [WebBlocks](https://github.com/ucla/WebBlocks) initiative, an open-source collaboration involving the University of California, the Mobile Web Framework community, and others.
 
-This software is powered by a number of outstanding packages including [Ruby](http://www.ruby-lang.org), [RubyGems](http://rubygems.org), [Bundler](http://gembundler.com), [Node.js](http://nodejs.org), [npm](https://npmjs.org), [Rake](http://rake.rubyforge.org), [Rack](http://rack.github.io), [Thin](http://code.macournoyer.com/thin/), [Sinatra](http://www.sinatrarb.com), [Ruby/Git](https://github.com/schacon/ruby-git), [Rubyzip](https://github.com/aussiegeek/rubyzip), [JSON-JRuby](http://json-jruby.rubyforge.org), [multi_json](https://github.com/intridea/multi_json) and [systemu](https://github.com/ahoward/systemu).
+This software is powered by a number of outstanding packages including [Ruby](http://www.ruby-lang.org), [RubyGems](http://rubygems.org), [Bundler](http://gembundler.com), [Node.js](http://nodejs.org), [npm](https://npmjs.org), [Rake](http://rake.rubyforge.org), [Rack](http://rack.github.io), [Thin](http://code.macournoyer.com/thin/), [Sinatra](http://www.sinatrarb.com), [Foreman](http://ddollar.github.io/foreman/), [Resque](https://github.com/resque/resque), [Redis](http://redis.io), [Ruby/Git](https://github.com/schacon/ruby-git), [Rubyzip](https://github.com/aussiegeek/rubyzip), [JSON-JRuby](http://json-jruby.rubyforge.org), [multi_json](https://github.com/intridea/multi_json) and [systemu](https://github.com/ahoward/systemu).
 
 ## Installation
 
@@ -29,6 +29,7 @@ Before installing the WebBlocks Build Server, one must first install:
 * Bundler: http://gembundler.com
 * Node.js and npm: http://nodejs.org
 * Git: http://git-scm.com
+* Redis: http://redis.io
 
 Note that Bundler may be installed as follows once RubyGems is installed:
 
@@ -61,27 +62,71 @@ public_config:
 private_config:
   build_dir: build
   workspace_dir: workspace
+  job_concurrency: default
+  resource_pool:
+    child_processes: 5
 ```
 
 In most cases, the default values in `settings.yml` should be sufficient.
 
 **WARNING** The value for `reference` should always refer to a tag name or commit ID. It should never refer to a branch. If it refers to  branch, stale builds may end up in the build cache. 
 
+**WARNING** The value for `resource_pool.child_processes` only applies when running in the `fork` concurrency mode (launched via `rackup`).
+
 ### Starting the Server
 
-To start the server, navigate to the server's root directory and type:
+There are two primary ways to use the WebBlocks Build Server.
+
+* `rackup` launches the build server in stand-alone mode
+* `foreman` launches the build server with [Resque](https://github.com/resque/resque) and [Redis](http://redis.io)
+
+The `rackup` launch is simpler, but the `foreman` launch includes a queue manager so that, when all resources are currently in use, rather than rejecting the build request, it will be queued until a resource becomes available.
+
+#### Using `rackup` to Start the Server
+
+To start the server with `rackup`, navigate to the root directory and type:
 
 ```bash
 rackup config.ru
 ```
 
-To change the port that the server listens on, use the `-p` option:
+The `rackup` launch defaults to port 9292. To change the port that the server listens on, use the `-p` option:
 
 ```bash
 rackup config.ru -p 80
 ```
 
-On first run, as well as when the repository or reference values in `settings.yml` are modified, the server will do a few things before it finishes start up:
+Using `rackup` is the simplest method for launching the WebBlocks Build Server; however, it has a caveat that, if there are `resource_pool.child_processes` builds currently in progress, the server will reject additional the request with a 503 Service Unavailable response until one of the current builds complete. This is because it does not include a queue manager (see *Using `foreman` to Start the Server* for an alternative that does not have this constraint).
+
+Before launching the server, you may want to tune `resource_pool.child_processes`. When the WebBlocks compiler is running, the associated process will use up to 100% CPU, so this value should likely exceed one less than the number of available cores. This value defaults to 3, but it can be modified in `settings.yml`.
+
+#### Using `foreman` to Start the Server
+
+In most production scenarios, rather than rejecting a request when all resources are in use, it may be better to queue the request. Launching WebBlocks with `foreman` achieves this by launching the WebBlocks Build Server in conjunction with [Resque](https://github.com/resque/resque) and [Redis](http://redis.io). Under this scheme, rather than rejecting requests when all build resources are in use, they will be queued for later processing when a worker becomes available.
+
+To start the server with `foreman`, navigate to the root directory and type:
+
+```bash
+foreman start
+```
+
+The `rackup` launch defaults to port 5000. To change the port that the server listens on, use the `-p` option:
+
+```bash
+foreman start -p 80
+```
+
+This launch method does *not* use `resource_pool.child_processes` to determine the number of workers; instead, this value is set in `.foreman` under the `concurrency` option. As with `resource_pool.child_processes`, it is likely that the number of workers launched with `foreman` should not exceed one less than the number of available cores. In addition to specifying the number of workers in `.foreman`, it may also be set during launch:
+
+```bash
+foreman start -p 80 -c worker=3,web=1,redis=1
+```
+
+**WARNING** The values of `web=1` and `redis=1` should not need to be modified, and they must be included.
+
+### First Run
+
+On first run of the WebBlocks Web Server, the server will:
 
 * Set up `build/:reference`
 * Set up `workspace/:reference`
@@ -89,17 +134,13 @@ On first run, as well as when the repository or reference values in `settings.ym
 * Initialize and update the Git submodules for `workspace/:reference/_WebBlocks`
 * Run the Bundler install for `workspace/:reference/_WebBlocks`
 
-The value for `:reference` will be as set in `settings.yml`.
+This process may take a bit of time, but future starts of the build server will proceed far more swiftly, except when the `reference` value is changed in `settings.yml`, when this process will again occur in full.
 
-This process may take a bit of time, but future starts of the build server, except when the repository or reference is changed, will proceed far more swiftly.
-
-Complete startup is denoted once a line such as the following is pushed to stdout:
+Startup completion is denoted in stdout by:
 
 ```none
->> Listening on 0.0.0.0:9292, CTRL+C to stop
+>> Build server is ready
 ```
-
-This indicates that the WebBlocks Build Server is ready for requests.
 
 ## Usage
 
@@ -244,9 +285,19 @@ If the status is `failed`, the response will additionally include:
 }
 ```
 
-##### Example Responses
+##### Example Responses: 200 OK
 
-See the **GET /api/jobs/:id** section.
+See the *GET /api/jobs/:id - Example Response: 200 OK with `running` status* section.
+
+##### 503 Service Unavailable
+
+If the server is running with in the `fork` concurrency mode and the number of current jobs is already at the limit set by `resource_pool.child_processes`:
+
+```none
+The server is currently busy processing other jobs. Please try again later.
+```
+
+A client should wait for some period of time and may then resubmit the build request.
 
 ### GET /api/jobs/:id
 

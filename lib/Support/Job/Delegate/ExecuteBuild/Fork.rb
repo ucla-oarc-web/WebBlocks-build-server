@@ -37,19 +37,20 @@ module WebBlocks
                     
                     @logger.fatal "Compiler failed -- #{error.message}"
                     write_error error.message, error.output, error.error
-                    return
                     
                   rescue Exception => error
                     
                     @logger.fatal "Build failed -- #{error.message}"
                     write_error error.message
-                    return
                     
                   end
 
                 end
-              
-                @logger.debug "Forked for build process -- pid #{pid}" if pid
+                
+                if pid
+                  @job.app.add_resource_pool_child_pid pid
+                  @logger.debug "Forked for build process -- pid #{pid}"
+                end
 
               end
               

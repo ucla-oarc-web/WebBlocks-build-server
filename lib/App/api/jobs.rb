@@ -3,6 +3,7 @@ require 'extensions/kernel' if defined?(require_relative).nil?
 
 require_relative "../../Model/Job"
 require_relative "../../App"
+require_relative '../../Support/Error/ResourceError'
 
 module WebBlocks
   module BuildServer
@@ -10,7 +11,11 @@ module WebBlocks
       
       post '/api/jobs' do
         
-        json Model::Job.create(self, params).metadata
+        begin
+          json Model::Job.create(self, params).metadata
+        rescue ::WebBlocks::BuildServer::Support::Error::ResourceError => error
+          halt 503, error.message
+        end
         
       end
       

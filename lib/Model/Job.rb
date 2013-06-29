@@ -2,11 +2,14 @@ require 'extensions/kernel' if defined?(require_relative).nil?
 require 'json'
 require_relative '../Support/Model'
 require_relative '../Support/Job/StrategyFactory'
+require_relative '../Support/Error/ResourceError'
 
 module WebBlocks
   module BuildServer
     module Model
       class Job < ::WebBlocks::BuildServer::Support::Model
+        
+        include ::WebBlocks::BuildServer::Support::Error
         
         attr_accessor :id, :path
         
@@ -33,10 +36,18 @@ module WebBlocks
           job = Job.new(app, id)
           
           unless job.started?
+            
+            unless app.has_resources?
+              app.logger.fatal "Aborting -- App is beyond its resource limit"
+              raise ResourceError, "The server is currently busy processing other jobs. Please try again later."
+            end
+            
             ::WebBlocks::BuildServer::Support::Job::StrategyFactory.new(job).build_each do |strategy|
               strategy.run!
             end
+            
             job.refresh!
+            
           end
           
           job

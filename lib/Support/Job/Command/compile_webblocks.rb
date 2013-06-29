@@ -1,4 +1,5 @@
 require 'extensions/kernel' if defined?(require_relative).nil?
+require 'systemu'
 
 require_relative 'CommandError'
 require_relative '../../with_clean_bundler_env'

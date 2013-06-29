@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 # General
 gem 'rake'
+gem 'foreman'
 gem 'rack'
 gem 'extensions'
 gem 'sinatra'
@@ -12,3 +13,5 @@ gem 'multi_json'
 gem 'git'
 gem 'systemu'
 gem 'rubyzip', :require => 'zip/zip'
+gem 'resque', '~> 1.24.1'
+gem 'sinatra-redis'
