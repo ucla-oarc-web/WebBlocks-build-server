@@ -55,6 +55,17 @@ module WebBlocks
         public_config['job_concurrency'] = config['job_concurrency'] if public_config.include? 'job_concurrency'
         private_config['job_concurrency'] = config['job_concurrency'] if private_config.include? 'job_concurrency'
         
+        config['allow'] = {} unless config.include? 'allow'
+        ['builds_metadata','builds_raw','builds_zip','jobs_create','jobs_delete','jobs_status'].each do |key|
+          config['allow'][key] = false unless config['allow'].include? key
+        end
+        
+        if public_config.include? 'allow'
+          public_config['allow'] = config['allow']
+        end
+        
+        private_config['allow'] = config['allow']
+        
         set :public_config, public_config
         set :private_config, private_config
         set :config, config

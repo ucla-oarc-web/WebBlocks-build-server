@@ -9,9 +9,19 @@ module WebBlocks
     class App
       
       get '/jobs/create' do
+        
+        if @config['allow']['jobs_create']
+        
         @action = '/api/jobs'
         @method = 'POST'
         view 'jobs/create'
+        
+        else
+        
+          halt_view 403, "Jobs creation support not available."
+          
+        end
+        
       end
       
     end
