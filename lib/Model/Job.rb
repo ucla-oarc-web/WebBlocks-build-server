@@ -32,7 +32,11 @@ module WebBlocks
         
         def self.create app, params
           
-          id = Digest::MD5.hexdigest(params.to_s)
+          hash = params
+          hash['repository'] = app.config['repository']
+          hash['reference'] = app.config['reference']
+          
+          id = Digest::MD5.hexdigest(hash.to_s)
           job = Job.new(app, id)
           
           unless job.started?
