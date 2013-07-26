@@ -1,45 +1,35 @@
-# 
-# To change this template, choose Tools | Templates
-# and open the template in the editor.
- 
-
 require 'rubygems'
 require 'rake'
 require 'rake/clean'
-require 'rubygems/package_task'
-require 'rdoc/task'
 require 'rake/testtask'
 require 'resque/tasks'
+require 'fileutils'
 
-spec = Gem::Specification.new do |s|
-  s.name = 'use-engine'
-  s.version = '0.0.1'
-  s.has_rdoc = true
-  s.extra_rdoc_files = ['README', 'LICENSE']
-  s.summary = 'Your summary here'
-  s.description = s.summary
-  s.author = ''
-  s.email = ''
-  # s.executables = ['your_executable_here']
-  s.files = %w(LICENSE README Rakefile) + Dir.glob("{bin,lib,spec}/**/*")
-  s.require_path = "lib"
-  s.bindir = "bin"
-end
-
-Gem::PackageTask.new(spec) do |pkg|
-end
-
-Rake::RDocTask.new do |rdoc|
-  files =['README', 'LICENSE', 'lib/**/*.rb']
-  rdoc.rdoc_files.add(files)
-  rdoc.main = "README" # page to start on
-  rdoc.title = "use-engine Docs"
-  rdoc.rdoc_dir = 'doc/rdoc' # rdoc output folder
-  rdoc.options << '--line-numbers'
-end
 
 Rake::TestTask.new do |t|
-  t.test_files = FileList['test/**/*.rb']
+  ENV["WEBBLOCKS_BUILD_SERVER_ENV"] = ENV["WEBBLOCKS_BUILD_SERVER_ENV"] || "test"
+  t.test_files = FileList['test/App/**/*.rb']
+end
+
+namespace :test do
+  
+  namespace :app do
+    Rake::TestTask.new :routes do |t|
+      ENV["WEBBLOCKS_BUILD_SERVER_ENV"] = ENV["WEBBLOCKS_BUILD_SERVER_ENV"] || "test"
+      t.pattern = 'test/App/Route/**/*.rb'
+    end
+  end
+  
+  task :clean do
+    ['build', 'workspace'].each do |dir|
+      Dir.glob("test/tmp/#{dir}/*/*") do |item|
+        basename = File.basename item
+        next if basename[0,1] == '.' or basename[0,1] == '_'
+        FileUtils.rm_rf item
+      end
+    end
+  end
+  
 end
 
 namespace :resque do

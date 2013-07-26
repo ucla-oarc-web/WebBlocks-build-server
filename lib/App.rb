@@ -12,7 +12,11 @@ module WebBlocks
       register Sinatra::ConfigFile
       helpers Sinatra::JSON
       
-      config_file ::File.join( ::File.dirname(::File.dirname(__FILE__)), "settings.yml" )
+      settings_path = ::File.join( ::File.dirname(::File.dirname(__FILE__)), "settings.yml" )
+      if ENV.include? "WEBBLOCKS_BUILD_SERVER_ENV" and ENV["WEBBLOCKS_BUILD_SERVER_ENV"] == 'test'
+        settings_path = ::File.join( ::File.dirname(::File.dirname(__FILE__)), "test/settings.yml" )
+      end
+      config_file settings_path
       
     end
   end

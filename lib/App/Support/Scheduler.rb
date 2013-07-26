@@ -43,6 +43,8 @@ module WebBlocks
               if @config['cleanup_frequency'] > 0
                 pid = fork do
                   trap("INT") { exit }
+                  trap("EXIT") { exit }
+                  trap("QUIT") { exit }
                   while true
                     sleep @config['cleanup_frequency']
                     @tasks.each do |task|
