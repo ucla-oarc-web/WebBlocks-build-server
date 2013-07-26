@@ -10,6 +10,7 @@ GEM
       dotenv (>= 0.7)
       thor (>= 0.13.6)
     git (1.2.5)
+    hpricot (0.8.6)
     json (1.7.7)
     mono_logger (1.1.0)
     multi_json (1.7.7)
@@ -60,6 +61,7 @@ DEPENDENCIES
   extensions
   foreman
   git
+  hpricot
   json (~> 1.7.7)
   multi_json
   rack
