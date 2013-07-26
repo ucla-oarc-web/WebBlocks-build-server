@@ -17,7 +17,7 @@ module WebBlocks
       
       def halt_view code, text, layout = "main"
         @body_content = "<h3>#{code} Error</h3><p>#{text}</p>"
-        erb "layouts/#{layout}".to_sym
+        halt code, erb("layouts/#{layout}".to_sym)
       end
       
     end
