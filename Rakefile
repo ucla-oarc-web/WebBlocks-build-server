@@ -13,6 +13,11 @@ end
 
 namespace :test do
   
+  Rake::TestTask.new :model do |t|
+    ENV["WEBBLOCKS_BUILD_SERVER_ENV"] = ENV["WEBBLOCKS_BUILD_SERVER_ENV"] || "test"
+    t.pattern = 'test/Model/**/*.rb'
+  end
+  
   namespace :app do
     Rake::TestTask.new :routes do |t|
       ENV["WEBBLOCKS_BUILD_SERVER_ENV"] = ENV["WEBBLOCKS_BUILD_SERVER_ENV"] || "test"
