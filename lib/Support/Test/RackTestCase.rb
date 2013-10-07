@@ -15,7 +15,7 @@ module WebBlocks
           include Rack::Test::Methods
 
           def app
-            APP
+            APP.helpers
           end
   
           def assert_last_response_body_html_has_link_with_path url, msg = ''

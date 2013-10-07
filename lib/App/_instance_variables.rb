@@ -9,11 +9,17 @@ module WebBlocks
       attr_accessor :config
       attr_accessor :logger
       
-      before do
+      def attach_instance_variables!
         
         @public_config = settings.public_config
         @config = settings.config
         @logger = Logger.new(STDOUT)
+        
+      end
+      
+      before do
+        
+        attach_instance_variables!
         
       end
       
