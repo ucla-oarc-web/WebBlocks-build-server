@@ -5,6 +5,7 @@ require 'multi_json'
 require 'fileutils'
 require 'git'
 require 'systemu'
+require 'pathname'
 
 require_relative "../App"
 require_relative '../Support/with_clean_bundler_env'
@@ -21,20 +22,24 @@ module WebBlocks
         private_config = settings.private_config
         base_dir = ::File.dirname(::File.dirname(::File.dirname(__FILE__)))
         
-        if public_config.include? 'workspace_dir'
-          public_config['workspace_dir'] = ::File.join( base_dir, public_config['workspace_dir'] ) 
-        end
+        Dir.chdir base_dir do
         
-        if private_config.include? 'workspace_dir'
-          private_config['workspace_dir'] = ::File.join( base_dir, private_config['workspace_dir'] ) 
-        end
+          if public_config.include? 'workspace_dir'
+            public_config['workspace_dir'] = Pathname.new(public_config['workspace_dir']).realpath 
+          end
+
+          if private_config.include? 'workspace_dir'
+            private_config['workspace_dir'] = Pathname.new(private_config['workspace_dir']).realpath 
+          end
+
+          if public_config.include? 'build_dir'
+            public_config['build_dir'] = Pathname.new(public_config['build_dir']).realpath 
+          end
+
+          if private_config.include? 'build_dir'
+            private_config['build_dir'] = Pathname.new(private_config['build_dir']).realpath 
+          end
         
-        if public_config.include? 'build_dir'
-          public_config['build_dir'] = ::File.join( base_dir, public_config['build_dir'] ) 
-        end
-        
-        if private_config.include? 'build_dir'
-          private_config['build_dir'] = ::File.join( base_dir, private_config['build_dir'] ) 
         end
         
         config = public_config.merge(private_config)
@@ -49,6 +54,17 @@ module WebBlocks
         
         public_config['job_concurrency'] = config['job_concurrency'] if public_config.include? 'job_concurrency'
         private_config['job_concurrency'] = config['job_concurrency'] if private_config.include? 'job_concurrency'
+        
+        config['allow'] = {} unless config.include? 'allow'
+        ['builds_metadata','builds_raw','builds_zip','jobs_create','jobs_delete','jobs_status'].each do |key|
+          config['allow'][key] = false unless config['allow'].include? key
+        end
+        
+        if public_config.include? 'allow'
+          public_config['allow'] = config['allow']
+        end
+        
+        private_config['allow'] = config['allow']
         
         set :public_config, public_config
         set :private_config, private_config

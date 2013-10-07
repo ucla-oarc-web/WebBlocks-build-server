@@ -56,9 +56,11 @@ bundle install
 Finally, you may want to modify `settings.yml` to use your own fork or reference, define resource limitations, cache expirations and directory structure:
 
 ```yaml
-# PUBLIC SERVER SETTINGS
+### PUBLIC SERVER SETTINGS
 
 public_config:
+  
+  ### WEBBLOCKS SETTINGS
   
   # Repository from which WebBlocks will be retrieved.
   repository: https://github.com/ucla/WebBlocks.git
@@ -68,15 +70,19 @@ public_config:
   # cache.
   reference: v1.0.08
   
-# PRIVATE SERVER SETTINGS
+### PRIVATE SERVER SETTINGS
 
 private_config:
+    
+  ### RESOURCE SETTINGS (when launched with rackup)
     
   # Number of child processes allowed in the fork mode. When the number of 
   # build jobs currently running excede this value, additional job requests 
   # will recieve a 503 Service Unavailable response until one or more of the 
   # current jobs complete.
   child_processes_limit: 3
+  
+  ### CLEANUP SETTINGS
   
   # Seconds between wake ups of the scheduler to handle tasks like workspace 
   # and build expiration cleanup.
@@ -98,11 +104,36 @@ private_config:
   # value to -1 to never expire incomplete workspaces. 
   workspace_incomplete_expiration: 7200
   
+  ### DIRECTORY SETTINGS
+  
   # Temporary directory used during build jobs.
   workspace_dir: workspace
   
   # Directory used to store completed build runs.
   build_dir: build
+  
+  ### ALLOWED OPERATIONS SETTINGS
+  
+  allow:
+    
+    # If false, throw 403 for GET builds/(:id) and GET builds/(:id)/metadata 
+    # requests.
+    builds_metadata: true
+    
+    # If false, throw 403 for GET builds/(:id)/raw/.. request.
+    builds_raw: true
+    
+    # If false, throw 403 for GET builds/(:id)/zip request.
+    builds_zip: true
+    
+    # If false, throw 403 for GET jobs/create and POST api/jobs requests.
+    jobs_create: true
+    
+    # If false, throw 403 for GET api/jobs/(:id)/delete request.
+    jobs_delete: true
+    
+    # If false, throw 403 for GET api/jobs/(:id) request.
+    jobs_status: true
 ```
 
 In most cases, the default values in `settings.yml` should be sufficient.
@@ -250,17 +281,23 @@ When a job is in the `complete` state, its `id` may be used to access a human-re
 
 The data presented on this page is all available via a GET request to `/api/jobs/:id`, and some clients may completely forego ever presenting an end user with this page, but there may be cases where the page is useful.
 
+NOTE: This will throw a 403 Forbidden error if `allow['builds_metadata']` in `settings.yml` is false.
+
 ### GET /builds/:id/zip to download build
 
 When a job is in the `complete` state, it's `id`, plus the additional route segment `/zip`, may be used to initiate the download of a compressed version of the assets built by the job. This is the final build product that most end users will seek when initiating a job on the build server.
 
 The `download` parameter within the `url` property of `/api/jobs/:id` is a link to this location; however, a client may also generate this link by inference from the `id` of the build.
 
+NOTE: This will throw a 403 Forbidden error if `allow['builds_zip']` in `settings.yml` is false.
+
 ### GET /builds/:id/raw/* to access static build files
 
 When a job is in the `complete` state, in addition to providing a zip for download, the build server also exposes the final build products as relatively pathed under the additional route segment `/raw`. For example, to access the blocks.css file, one could simply reference `/builds/:id/raw/css/blocks.css`.
 
 While some end users will want to download a zip file and deploy the assets within their own web root, in other cases it may be sufficient to simply reference the raw version of the file directly from the server.
+
+NOTE: This will throw a 403 Forbidden error if `allow['builds_raw']` in `settings.yml` is false.
 
 ## Service API
 
@@ -339,6 +376,14 @@ If the status is `failed`, the response will additionally include:
 
 See the *GET /api/jobs/:id - Example Response: 200 OK with `running` status* section.
 
+##### Error Response: 403 Forbidden
+
+If `allow['jobs_create']` in `settings.yml` is false, this will always be thrown:
+
+```none
+Jobs delete support not available.
+```
+
 ##### Error Response: 503 Service Unavailable
 
 If the server is running with in the `fork` concurrency mode and the number of current jobs is already at the limit set by `child_processes_limit`:
@@ -389,12 +434,28 @@ If the status is `failed`, the response will additionally include:
 {"status":"failed","id":"5e5b96b11f1ab55f32adea07ef0cab13","error":{"message":"Build failed","output":"[Dispatcher] Executing task: before_init\n[Dispatcher] Executing task: init\n[Dispatcher] Executing task: after_init\n[Dispatcher] Executing task: before_preprocess\n[Dispatcher] Executing task: preprocess\n[Dispatcher] Executing task: after_preprocess\n[Dispatcher] Executing task: before_link\n[Dispatcher] Executing task: link\n[Dispatcher] Executing task: after_link\n[Dispatcher] Executing task: before_compile\n[Dispatcher] Executing task: compile\n","error":"rake aborted!\nCompass compile error: \ndirectory css/compiled/ \n   create css/compiled/blocks-ie.css \n    error blocks.scss (Line 2: Undefined mixin '-does-not-exist'.)\n\nSass::SyntaxError on line [\"2\"] of workspace/v1.0.08/5e5b96b11f1ab55f32adea07ef0cab13/src/sass/blocks.scss: Undefined mixin '-does-not-exist'.\nRun with --trace to see the full backtrace\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:58:in `failure'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:142:in `block (2 levels) in compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:134:in `chdir'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:134:in `block in compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:50:in `block in task'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:97:in `scope'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:49:in `task'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:129:in `compile_css'\nworkspace/v1.0.08/_WebBlocks/lib/Build/WebBlocks.rb:123:in `compile'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:44:in `block (3 levels) in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:42:in `each'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:42:in `block (2 levels) in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:44:in `block in system'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:97:in `scope'\nworkspace/v1.0.08/_WebBlocks/lib/Logger.rb:43:in `system'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:39:in `block in execute'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:38:in `each'\nworkspace/v1.0.08/_WebBlocks/lib/Build/Dispatcher.rb:38:in `execute'\nworkspace/v1.0.08/_WebBlocks/lib/Rake/Task/build.rb:13:in `block in <top (required)>'\n/Users/ebollens/.rvm/gems/ruby-1.9.3-p392/bin/ruby_noexec_wrapper:14:in `eval'\n/Users/ebollens/.rvm/gems/ruby-1.9.3-p392/bin/ruby_noexec_wrapper:14:in `<main>'\nTasks: TOP => default => build\n(See full trace by running task with --trace)\n"},"build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -does-not-exist;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
 ```
 
+##### Error Response: 403 Forbidden
+
+If `allow['jobs_status']` in `settings.yml` is false, this will always be thrown:
+
+```none
+Jobs status support not available.
+```
+
 ### GET /api/jobs/:id/delete
 
 ##### Success Response: 200 OK
 
 ```json
 {"status":"deleted","id":"c668b6b22bd09a171560e33c766ea36c","url":{"download":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c/zip","browse":"http://localhost:9292/builds/c668b6b22bd09a171560e33c766ea36c"},"build":{"rakefile-config":"{\"build\":{\"packages\":[\":jquery\",\":modernizr\",\":respond\",\":selectivizr\",\":efx\"],\"debug\":false},\"src\":{\"adapter\":[\"bootstrap\"],\"modules\":[\"Base\",\"Compatibility\",\"Entity\",\"Extend/Base\"]},\"package\":{\"bootstrap\":{\"scripts\":[]}}}","src-sass-variables":"{\"color-body-background\":\"#111\",\"color-body-background-text\":\"#eee\"}","src-sass-blocks":".my-hidden-class {\r\n    @include -base-visibility-hide;\r\n}","src-sass-blocks-ie":".not-ie {\r\n    display: none;\r\n}"},"server":{"repository":"https://github.com/ucla/WebBlocks.git","reference":"v1.0.08"}}
+```
+
+##### Error Response: 403 Forbidden
+
+If `allow['jobs_delete']` in `settings.yml` is false, this will always be thrown:
+
+```none
+Jobs delete support not available.
 ```
 
 ##### Error Response: 404 Not Found
