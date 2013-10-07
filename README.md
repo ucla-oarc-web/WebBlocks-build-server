@@ -4,6 +4,8 @@
 
 **WebBlocks Build Server** is a stand-alone application that provides a remote build service for WebBlocks. Through a web service API, one may submit jobs that define compiler configuration, SASS variable settings and SASS sources to be compiled down into WebBlocks. It is intended to be used with the Builder tool in the WebBlocks documentation, but its generic interface may be called in other ways as well. Additionally, it also provides a web interface for accessing completed builds.
 
+[![Build Status](https://travis-ci.org/ucla/WebBlocks-build-server.png)](https://travis-ci.org/ucla/WebBlocks-build-server)
+
 *For more information on WebBlocks, see the project's [repository](https://github.com/ucla/WebBlocks) and [documentation](http://ucla.github.io/WebBlocks).*
 
 ### License
