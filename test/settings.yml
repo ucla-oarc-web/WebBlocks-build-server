@@ -1,6 +1,8 @@
-# PUBLIC SERVER SETTINGS
+### PUBLIC SERVER SETTINGS
 
 public_config:
+  
+  ### WEBBLOCKS SETTINGS
   
   # Repository from which WebBlocks will be retrieved.
   repository: https://github.com/ucla/WebBlocks.git
@@ -10,15 +12,19 @@ public_config:
   # cache.
   reference: v1.0.08
   
-# PRIVATE SERVER SETTINGS
+### PRIVATE SERVER SETTINGS
 
 private_config:
+    
+  ### RESOURCE SETTINGS (when launched with rackup)
     
   # Number of child processes allowed in the fork mode. When the number of 
   # build jobs currently running excede this value, additional job requests 
   # will recieve a 503 Service Unavailable response until one or more of the 
   # current jobs complete.
   child_processes_limit: 1
+  
+  ### CLEANUP SETTINGS
   
   # Seconds between wake ups of the scheduler to handle tasks like workspace 
   # and build expiration cleanup.
@@ -40,8 +46,33 @@ private_config:
   # value to -1 to never expire incomplete workspaces. 
   workspace_incomplete_expiration: 7200
   
+  ### DIRECTORY SETTINGS
+  
   # Temporary directory used during build jobs.
   workspace_dir: test/tmp/workspace
   
   # Directory used to store completed build runs.
   build_dir: test/tmp/build
+  
+  ### ALLOWED OPERATIONS SETTINGS
+  
+  allow:
+    
+    # If false, throw 403 for GET builds/(:id) and GET builds/(:id)/metadata 
+    # requests.
+    builds_metadata: true
+    
+    # If false, throw 403 for GET builds/(:id)/raw/.. request.
+    builds_raw: true
+    
+    # If false, throw 403 for GET builds/(:id)/zip request.
+    builds_zip: true
+    
+    # If false, throw 403 for GET jobs/create and POST api/jobs requests.
+    jobs_create: true
+    
+    # If false, throw 403 for GET api/jobs/(:id)/delete request.
+    jobs_delete: true
+    
+    # If false, throw 403 for GET api/jobs/(:id) request.
+    jobs_status: true
